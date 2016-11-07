@@ -64,5 +64,6 @@
   shell: "docker run -d swarm join --advertise={{ docker_swarm_addr }}:2375 consul://{{ consul_ip_addr }}:8500"
   when: "'docker_swarm_worker' in group_names"
 
-- name: debug
-  debug: msg="{{ consul_ip_addr }}"
+- name: Deploy Portainer to manage the swarm.
+  shell: "docker -H :4000 run -d -p 9000:9000 portainer/portainer -H tcp://{{ docker_manager_ip }}:4000 --swarm"
+  when: "'manager-01' in inventory_hostname"
