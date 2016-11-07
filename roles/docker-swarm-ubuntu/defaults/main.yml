@@ -1,0 +1,15 @@
+---
+# defaults file for docker-swarm-ubuntu
+
+docker_apt_repo: "deb https://apt.dockerproject.org/repo {{ ansible_distribution | lower }}-{{ ansible_distribution_release }} main"
+
+
+# # Switches disabling the docker-engine or swarm-mode setup.
+# skip_engine: False
+# skip_swarm: False
+
+docker_opts: -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock
+
+consul_ip_addr: "{{ hostvars['consul-01']['ansible_eth1']['ipv4']['address']}}"
+docker_swarm_addr: "{{ ansible_eth1.ipv4.address }}"
+docker_swarm_port: 2375

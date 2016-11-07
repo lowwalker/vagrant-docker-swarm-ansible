@@ -1,0 +1,6 @@
+---
+# handlers file for docker-swarm-ubuntu
+- name: restart docker
+  service:
+    name: docker
+    state: restarted

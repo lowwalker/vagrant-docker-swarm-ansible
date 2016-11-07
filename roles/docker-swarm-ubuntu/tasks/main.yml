@@ -1,0 +1,68 @@
+---
+# tasks file for docker-swarm-ubuntu
+
+
+- name: Import Docker APT public key.
+  apt_key:
+    keyserver: hkp://p80.pool.sks-keyservers.net:80
+    id: 58118E89F3A912897C070ADBF76221572C52609D
+    state: present
+
+- name: Add the APT Docker repository.
+  apt_repository:
+    repo: "{{ docker_apt_repo }}"
+    state: present
+    filename: docker.list
+    update_cache: yes
+
+- name: Install Docker and python dependencies.
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - python-dev
+    - python-pip
+    - docker-engine
+
+- name: Install Docker py via pip
+  pip:
+    name: docker-py
+    version: 1.9.0
+
+- name: Add docker options file
+  template:
+    src: docker-defaults.j2
+    dest: /etc/default/docker
+  notify: restart docker
+
+- meta: flush_handlers
+
+- name: Deploy docker consul container
+  docker_container:
+    name: consul
+    image: progrium/consul
+    state: started
+    command: -server -bootstrap -ui-dir /ui
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+  when: "'consul-01' in inventory_hostname"
+
+- name: Start swarm-mgr master container
+  shell: "docker run -d -p 4000:4000 swarm manage -H :4000 --replication --advertise {{ docker_swarm_addr }}:4000 consul://{{ consul_ip_addr }}:8500"
+  when: "'manager-01' in inventory_hostname"
+
+- name: Pause for 30 to let first container come up
+  pause: seconds=30
+
+- name: Start swarm-mgr secondary container
+  shell: "docker run -d -p 4000:4000 swarm manage -H :4000 --replication --advertise {{ docker_swarm_addr }}:4000 consul://{{ consul_ip_addr }}:8500"
+  when: "'manager-02' in inventory_hostname"
+
+- name: Start node containers and join cluster
+  shell: "docker run -d swarm join --advertise={{ docker_swarm_addr }}:2375 consul://{{ consul_ip_addr }}:8500"
+  when: "'docker_swarm_worker' in group_names"
+
+- name: debug
+  debug: msg="{{ consul_ip_addr }}"
