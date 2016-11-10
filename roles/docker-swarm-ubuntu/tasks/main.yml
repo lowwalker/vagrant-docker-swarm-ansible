@@ -67,3 +67,7 @@
 - name: Deploy Portainer to manage the swarm.
   shell: "docker -H :4000 run -d -p 9000:9000 portainer/portainer -H tcp://{{ docker_manager_ip }}:4000 --swarm"
   when: "'manager-01' in inventory_hostname"
+
+- name: Deploy registrators to swarm nodes
+  shell: "docker run -d -v /var/run/docker.sock:/tmp/docker.sock -h 'hostname' gliderlabs/registrator -ip {{ docker_swarm_addr }} consul://{{ consul_ip_addr }}:8500"
+  when: "'docker_swarm_worker' in group_names"
